@@ -67,17 +67,24 @@ class JsonProtocol {
     dynamic payload,
   }) async {
     var uri = Uri.parse('${_endpoint.url}$requestUri');
-    uri = uri.replace(queryParameters: {
-      ...uri.queryParameters,
-      ...?queryParams,
-    });
+
+    if (queryParams != null && queryParams.isNotEmpty) {
+      uri = uri.replace(queryParameters: {
+        ...uri.queryParameters,
+        for (final entry in queryParams.entries)
+          if (entry.value.isNotEmpty) entry.key: entry.value.last,
+      });
+    }
+
     final rq = Request(
       method,
       uri,
     );
     rq.headers.addAll(headers ?? {});
     if (payload != null) {
-      rq.body = json.encode(payload);
+      final encoded = utf8.encode(json.encode(payload));
+      rq.bodyBytes = encoded;
+      rq.headers['Content-Length'] = encoded.length.toString();
     }
 
     if (signed) {
